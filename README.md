@@ -20,3 +20,6 @@
 本專案遵循 **2026-03-06 API Key 零洩漏規範**：
 1.  **佔位符機制**：`index.html` 中不含真實 API Key，使用 `__PLACEHOLDER__` 格式。
 2.  **祕鑰注入**：透過 GitHub Secrets 結合 `.github/inject.py` 於部署階段注入真實值。
+
+---
+*Last Updated: 2026-03-23* - 實作排行榜功能與金鑰防護機制。

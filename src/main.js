@@ -350,16 +350,33 @@ async function uploadScore() {
     const nickname = nicknameInput.value.trim() || "無名大俠";
     localStorage.setItem('idiom_nickname', nickname);
 
+    const scoreData = {
+        nickname: nickname,
+        score: score,
+        difficulty: initialTime === 20 ? "簡單" : initialTime === 15 ? "一般" : "困難",
+        timestamp: new Date().toISOString()
+    };
+
+    // 檢查網路狀態
+    if (!navigator.onLine) {
+        saveScoreOffline(scoreData);
+        uploadStatus.textContent = "📶 網路斷開，已暫存於本地";
+        uploadStatus.classList.remove('hidden', 'text-blue-500', 'text-red-500');
+        uploadStatus.classList.add('text-orange-500');
+        uploadScoreBtn.textContent = "已暫存";
+        uploadScoreBtn.disabled = true;
+        scoreUploaded = true;
+        return;
+    }
+
     uploadStatus.textContent = "上傳中...";
-    uploadStatus.classList.remove('hidden', 'text-red-500', 'text-green-500');
+    uploadStatus.classList.remove('hidden', 'text-red-500', 'text-green-500', 'text-orange-500');
     uploadStatus.classList.add('text-blue-500');
     uploadScoreBtn.disabled = true;
 
     try {
         await addDoc(collection(db, "typetc_leaderboard"), {
-            nickname: nickname,
-            score: score,
-            difficulty: initialTime === 20 ? "簡單" : initialTime === 15 ? "一般" : "困難",
+            ...scoreData,
             timestamp: serverTimestamp()
         });
         uploadStatus.textContent = "✅ 上傳成功！";
@@ -373,6 +390,45 @@ async function uploadScore() {
         uploadScoreBtn.disabled = false;
     }
 }
+
+// 暫存分數至本地
+function saveScoreOffline(data) {
+    const pendingScores = JSON.parse(localStorage.getItem('typetc_pending_scores') || '[]');
+    pendingScores.push(data);
+    localStorage.setItem('typetc_pending_scores', JSON.stringify(pendingScores));
+}
+
+// 同步本地暫存分數
+async function syncOfflineScores() {
+    const pendingScores = JSON.parse(localStorage.getItem('typetc_pending_scores') || '[]');
+    if (pendingScores.length === 0) return;
+
+    if (confirm(`偵測到您有 ${pendingScores.length} 筆離線得分，是否立即同步至全球排行榜？`)) {
+        let successCount = 0;
+        for (const scoreData of pendingScores) {
+            try {
+                await addDoc(collection(db, "typetc_leaderboard"), {
+                    ...scoreData,
+                    timestamp: serverTimestamp() // 使用伺服器時間
+                });
+                successCount++;
+            } catch (err) {
+                console.error("同步單筆分數失敗:", err);
+            }
+        }
+
+        if (successCount > 0) {
+            alert(`✅ 成功同步 ${successCount} 筆分數！`);
+            localStorage.removeItem('typetc_pending_scores');
+            fetchLeaderboard(); // 刷新排行榜
+        }
+    }
+}
+
+// 監聽網路恢復
+window.addEventListener('online', syncOfflineScores);
+// 初始化時也檢查一次
+if (navigator.onLine) syncOfflineScores();
 
 async function fetchLeaderboard() {
     leaderboardBody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-400 italic font-notoSans animate-pulse">神龍盤旋中...</td></tr>';

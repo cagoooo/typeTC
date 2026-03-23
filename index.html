@@ -18,9 +18,34 @@
 
     <!-- SEO -->
     <meta name="description" content="一個專為學生設計的互動式成語學習遊戲，具有豐富音效與視覺回饋，快來挑戰！">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#e11d48">
+
     <!-- 引入自訂 CSS 會由 Vite 處理 Tailwind 的編譯 -->
     <link rel="stylesheet" href="./src/style.css">
-    <!-- 強效清除：避免舊版 Service Worker 殘留導致 404 錯誤 -->
+
+    <!-- 註冊 Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // 僅在生產環境或非本地網域註冊
+                if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then(reg => console.log('[PWA] Service Worker 註冊成功:', reg.scope))
+                        .catch(err => console.log('[PWA] Service Worker 註冊失敗:', err));
+                } else {
+                    // 開發環境下主動取消註冊，防止快取干擾 Vite HMR
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        for (let registration of registrations) {
+                            registration.unregister();
+                            console.log('[PWA] 開發環境：已取消註冊 Service Worker');
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+
     <!-- Firebase 配置佔位符 (由 .github/inject.py 在部署時替換) -->
     <script>
         window.FIREBASE_CONFIG = {

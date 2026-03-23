@@ -16,10 +16,17 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cagoooo.github.io/typeTC/">
 
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
     <!-- SEO -->
     <meta name="description" content="一個專為學生設計的互動式成語學習遊戲，具有豐富音效與視覺回饋，快來挑戰！">
     <link rel="manifest" href="./manifest.json">
-    <meta name="theme-color" content="#e11d48">
+    <meta name="theme-color" content="#991b1b">
 
     <!-- 引入自訂 CSS 會由 Vite 處理 Tailwind 的編譯 -->
     <link rel="stylesheet" href="./src/style.css">
@@ -76,11 +83,17 @@
     </script>
 </head>
 
-<body class="py-4 px-2 sm:p-4">
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden md:max-w-xl lg:max-w-2xl my-8">
-        <div class="p-4 sm:p-6 md:p-8">
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold text-gray-800">成語填空遊戲</h1>
+<body class="min-h-screen flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8">
+    <!-- 背景裝飾層 -->
+    <div class="fixed inset-0 -z-10 bg-oriental-pattern opacity-10 pointer-events-none"></div>
+
+    <div
+        class="w-full max-w-2xl bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-white/20 transition-all duration-500">
+        <div class="p-6 sm:p-10">
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+                <h1
+                    class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-red-800 to-red-600 bg-clip-text text-transparent title-font">
+                    成語填空大挑戰</h1>
                 <div class="flex items-center space-x-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="currentColor"
                         viewBox="0 0 24 24" id="lives-icon">
@@ -98,22 +111,26 @@
                 </div>
             </div>
 
-            <div id="difficulty-selector" class="mb-6 bg-gray-50 p-4 rounded-lg text-center">
-                <h2 class="text-lg font-bold text-gray-700 mb-3">請選擇難度以開始遊戲：</h2>
-                <div class="flex flex-wrap justify-center gap-2 sm:gap-4">
-                    <button class="diff-btn btn bg-blue-100 text-blue-800 font-bold py-2 px-4 rounded hover:bg-blue-200"
+            <div id="difficulty-selector"
+                class="mb-6 bg-red-50/50 p-6 rounded-2xl text-center border border-red-100/50 shadow-inner">
+                <h2 class="text-lg font-bold text-red-900 mb-4 title-font">請選擇難度以開始遊戲：</h2>
+                <div class="flex flex-wrap justify-center gap-3 sm:gap-4">
+                    <button
+                        class="diff-btn btn bg-red-100 text-red-800 font-bold py-2.5 px-6 rounded-xl hover:bg-red-200 transition-all"
                         data-time="20">簡單 (20秒)</button>
                     <button
-                        class="diff-btn btn bg-green-100 text-green-800 font-bold py-2 px-4 rounded hover:bg-green-200"
+                        class="diff-btn btn bg-amber-100 text-amber-800 font-bold py-2.5 px-6 rounded-xl hover:bg-amber-200 transition-all"
                         data-time="15">一般 (15秒)</button>
-                    <button class="diff-btn btn bg-red-100 text-red-800 font-bold py-2 px-4 rounded hover:bg-red-200"
+                    <button
+                        class="diff-btn btn bg-slate-800 text-white font-bold py-2.5 px-6 rounded-xl hover:bg-slate-900 transition-all"
                         data-time="10">困難 (10秒)</button>
                 </div>
-                <div class="mt-4">
+                <div class="mt-6">
                     <button id="show-leaderboard-btn"
-                        class="text-blue-600 hover:text-blue-800 font-bold flex items-center justify-center mx-auto transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
+                        class="text-red-700 hover:text-red-900 font-bold flex items-center justify-center mx-auto transition-all group">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            class="h-5 w-5 mr-1 group-hover:scale-110 transition-transform" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
@@ -182,23 +199,31 @@
                 </div>
             </div>
 
-            <div id="game-over-area" class="hidden text-center mt-8">
-                <h2 class="text-3xl font-bold text-red-600 mb-2 font-notoSans">遊戲結束！</h2>
-                <p class="text-xl text-gray-700 mb-4 font-notoSans">您的最終得分為：<span id="final-score"
-                        class="font-bold text-yellow-600 text-3xl">0</span></p>
+            <div id="game-over-area" class="hidden text-center mt-12 pb-8">
+                <h2 class="text-4xl font-bold text-red-800 mb-4 title-font">遊戲結束！</h2>
+                <p class="text-xl text-slate-700 mb-6 font-medium">您的最終得分為：<span id="final-score"
+                        class="font-bold text-amber-600 text-4xl">0</span></p>
 
-                <div id="nickname-section" class="mb-6 bg-blue-50 p-6 rounded-xl border border-blue-100 shadow-inner">
-                    <p class="text-blue-800 mb-3 font-medium">恭喜打破紀錄！請輸入您的暱稱上傳排行：</p>
-                    <div class="flex max-w-xs mx-auto">
+                <div id="nickname-section"
+                    class="mb-8 bg-amber-50/50 p-8 rounded-3xl border border-amber-100 shadow-sm transition-all">
+                    <p class="text-amber-900 mb-4 font-bold flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 text-amber-600" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path
+                                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        恭喜打破紀錄！請留下您的名號：
+                    </p>
+                    <div class="flex max-w-sm mx-auto shadow-lg rounded-2xl overflow-hidden border-2 border-amber-200">
                         <input type="text" id="nickname-input"
-                            class="flex-1 px-4 py-2 border-2 border-blue-300 rounded-l-lg focus:outline-none focus:border-blue-500 text-center font-bold"
+                            class="flex-1 px-6 py-3 bg-white focus:outline-none text-center font-bold text-lg text-slate-800"
                             placeholder="您的暱稱" maxlength="10">
                         <button id="upload-score-btn"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-lg transition-colors">
+                            class="bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-8 transition-colors">
                             上傳
                         </button>
                     </div>
-                    <p id="upload-status" class="mt-2 text-sm hidden"></p>
+                    <p id="upload-status" class="mt-4 text-sm font-medium hidden"></p>
                 </div>
 
                 <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
@@ -218,8 +243,8 @@
                 class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm hidden">
                 <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-pop">
                     <div
-                        class="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white flex justify-between items-center">
-                        <h3 class="text-xl font-bold flex items-center">
+                        class="bg-gradient-to-r from-red-800 to-red-600 p-5 text-white flex justify-between items-center shadow-lg">
+                        <h3 class="text-xl font-bold flex items-center title-font tracking-wider">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

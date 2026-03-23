@@ -197,10 +197,10 @@ function loadNewIdiom() {
     blankIndex = Math.floor(Math.random() * 4);
 
     charElements.forEach((charElement, i) => {
-        charElement.classList.remove("blank", "correct", "incorrect", "animate-pulse-slow", "animate-shake", "animate-pop");
+        charElement.classList.remove("blank", "correct", "incorrect");
         if (i === blankIndex) {
             charElement.textContent = "";
-            charElement.classList.add("blank", "animate-pulse-slow");
+            charElement.classList.add("blank");
         } else {
             charElement.textContent = currentIdiomObj.idiom[i];
         }
@@ -228,25 +228,25 @@ function checkAnswer() {
     if (userAnswer === correctAnswer) {
         score += 10;
         scoreElement.textContent = score;
-        blankElement.classList.add("correct", "animate-pop");
+        blankElement.classList.add("correct");
 
         feedbackElement.textContent = "答對了！ 🎉";
         feedbackElement.classList.remove("hidden", "text-red-600");
         feedbackElement.classList.add("text-green-600");
         playSuccessSound();
 
-        // 慶祝撒花
+        // 慶祝撒花 (配色調整為：緋紅、金、翠綠)
         confetti({
-            particleCount: 100,
-            spread: 70,
+            particleCount: 120,
+            spread: 80,
             origin: { y: 0.6 },
-            colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+            colors: ['#991b1b', '#f59e0b', '#10b981', '#1e293b']
         });
     } else {
         lives -= 1;
         updateLives();
 
-        blankElement.classList.add("incorrect", "animate-shake");
+        blankElement.classList.add("incorrect");
 
         feedbackElement.textContent = `答錯了！正確答案是「${correctAnswer}」`;
         feedbackElement.classList.remove("hidden", "text-green-600");
@@ -261,7 +261,8 @@ function checkAnswer() {
     // Show meaning
     meaningBox.textContent = `📖 釋義：${currentIdiomObj.meaning}`;
     meaningBox.classList.remove("hidden");
-    void meaningBox.offsetWidth;
+    meaningBox.className = "bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-900 text-center mb-6 shadow-sm";
+    void meaningBox.offsetWidth; // 強制重繪觸發動畫
     meaningBox.classList.add("animate-pop");
 
     submitBtn.classList.add("hidden");
@@ -291,10 +292,10 @@ function startTimer() {
         timerBarElement.style.width = `${percentage}%`;
 
         if (timeLeft <= 5 && timeLeft > 0) {
-            timerBarElement.style.backgroundColor = "#f59e0b";
+            timerBarElement.style.background = "linear-gradient(to right, #f59e0b, #fbbf24)"; // 警告橘
             playCountdownWarning(); // 倒數 5 秒警示音
         } else if (timeLeft <= 0) {
-            timerBarElement.style.backgroundColor = "#ef4444";
+            timerBarElement.style.background = "linear-gradient(to right, #991b1b, #ef4444)"; // 結束紅
             clearInterval(timer);
             gameOverTimeUp();
         } else {

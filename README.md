@@ -5,11 +5,13 @@
 ## 🚀 核心功能
 *   **互動學習**：隨機成語挖空，強化記憶。
 *   **全域排行榜**：與全球玩家競爭，即時更新榮譽榜。
-*   **極致體驗**：內建碎紙特效、立體合成音效 (BEEP) 與動態倒數計時。
-*   **安全防護**：落實硬編碼隔離規範，保障 API 安全。
+*   **霓虹古韻視覺**：融合現代與東方美學的極致 UI，支援物端響應式 (RWD)。
+*   **PWA 支援**：支援離線啟動與將網頁加入手機主畫面，體驗如原生 App。
+*   **安全防護**：落實金鑰隔離注入規範，確保開發安全。
 
 ## 🛠️ 技術棧
-*   **前端**：Vite + Vanilla JS + Tailwind CSS
+*   **核心**：Vite + Vanilla JS + Tailwind CSS
+*   **視覺設計**：Neon Heritage (Red/Gold Theme) + Glassmorphism
 *   **後端**：Firebase Firestore (Anonymous Auth)
 *   **部署**：GitHub Actions + GitHub Pages
 
@@ -22,4 +24,4 @@
 2.  **祕鑰注入**：透過 GitHub Secrets 結合 `.github/inject.py` 於部署階段注入真實值。
 
 ---
-*Last Updated: 2026-03-23* - 實作排行榜功能與金鑰防護機制。
+*Last Updated: 2026-03-23* - **v1.2.1 「霓虹古韻」正式版**。完成視覺優化、PWA 支援與離線資料同步。

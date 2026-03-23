@@ -1,4 +1,4 @@
-const CACHE_NAME = 'typetc-v1.1.0';
+const CACHE_NAME = 'typetc-v1.2.1';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',

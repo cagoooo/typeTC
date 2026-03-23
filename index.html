@@ -5,8 +5,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>成語填空遊戲</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <!-- 引入自訂 CSS 會由 Vite 處理 Tailwind 的編譯 -->
-    <link rel="stylesheet" href="/src/style.css">
+    <link rel="stylesheet" href="./src/style.css">
+    <!-- 強效清除：避免舊版 Service Worker 殘留導致 404 錯誤 -->
+    <script>
+        (function () {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                    for (let registration of registrations) {
+                        registration.unregister().then(() => {
+                            console.log('Old SW unregistered');
+                            // 若偵測到有舊 SW，強迫刷新一次
+                            if (window.localStorage.getItem('sw_cleaned') !== 'true') {
+                                window.localStorage.setItem('sw_cleaned', 'true');
+                                window.location.reload();
+                            }
+                        });
+                    }
+                });
+            }
+        })();
+    </script>
 </head>
 
 <body class="py-4 px-2 sm:p-4">

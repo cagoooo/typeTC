@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   body {
@@ -20,38 +18,38 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: all 0.3s;
   }
-  
+
   .blank {
     background-color: #f3f4f6;
     border: 2px dashed #6b7280;
   }
-  
+
   .correct {
     background-color: #d1fae5;
     border: 2px solid #10b981;
   }
-  
+
   .incorrect {
     background-color: #fee2e2;
     border: 2px solid #ef4444;
   }
-  
+
   .timer-bar {
     height: 8px;
-    background-color: #3b82f6; 
+    background-color: #3b82f6;
     border-radius: 4px;
-    transition: width 0.1s linear, background-color 0.3s ease; 
+    transition: width 0.1s linear, background-color 0.3s ease;
   }
 
   .btn {
     transition: all 0.3s;
   }
-  
+
   .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
-  
+
   .btn:active {
     transform: translateY(0);
   }
@@ -61,23 +59,48 @@
   .animate-pulse-slow {
     animation: pulse 1s infinite;
   }
+
   .animate-shake {
     animation: shake 0.5s;
   }
+
   .animate-pop {
     animation: pop 0.3s ease-out;
   }
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  50% { transform: translateX(5px); }
-  75% { transform: translateX(-5px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  50% {
+    transform: translateX(5px);
+  }
+
+  75% {
+    transform: translateX(-5px);
+  }
 }
 
 @keyframes pop {
-  0% { transform: scale(0.8); opacity: 0; }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }

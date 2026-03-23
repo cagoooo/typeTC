@@ -1,35 +1,56 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>成語填空遊戲</title>
     <!-- 引入自訂 CSS 會由 Vite 處理 Tailwind 的編譯 -->
     <link rel="stylesheet" href="/src/style.css">
+    <!-- 避免舊版 Service Worker 殘留導致 404 錯誤 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                for (let registration of registrations) {
+                    registration.unregister();
+                }
+            });
+        }
+    </script>
 </head>
+
 <body class="py-4 px-2 sm:p-4">
     <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden md:max-w-xl lg:max-w-2xl my-8">
         <div class="p-4 sm:p-6 md:p-8">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-bold text-gray-800">成語填空遊戲</h1>
                 <div class="flex items-center space-x-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="currentColor" viewBox="0 0 24 24" id="lives-icon">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="currentColor"
+                        viewBox="0 0 24 24" id="lives-icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                     </svg>
                     <span id="lives" class="text-xl font-bold text-red-500 mr-4">3</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z">
+                        </path>
                     </svg>
                     <span id="score" class="text-xl font-bold text-gray-800">0</span>
                 </div>
             </div>
-            
+
             <div id="difficulty-selector" class="mb-6 bg-gray-50 p-4 rounded-lg text-center">
                 <h2 class="text-lg font-bold text-gray-700 mb-3">請選擇難度以開始遊戲：</h2>
                 <div class="flex flex-wrap justify-center gap-2 sm:gap-4">
-                    <button class="diff-btn btn bg-blue-100 text-blue-800 font-bold py-2 px-4 rounded hover:bg-blue-200" data-time="20">簡單 (20秒)</button>
-                    <button class="diff-btn btn bg-green-100 text-green-800 font-bold py-2 px-4 rounded hover:bg-green-200" data-time="15">一般 (15秒)</button>
-                    <button class="diff-btn btn bg-red-100 text-red-800 font-bold py-2 px-4 rounded hover:bg-red-200" data-time="10">困難 (10秒)</button>
+                    <button class="diff-btn btn bg-blue-100 text-blue-800 font-bold py-2 px-4 rounded hover:bg-blue-200"
+                        data-time="20">簡單 (20秒)</button>
+                    <button
+                        class="diff-btn btn bg-green-100 text-green-800 font-bold py-2 px-4 rounded hover:bg-green-200"
+                        data-time="15">一般 (15秒)</button>
+                    <button class="diff-btn btn bg-red-100 text-red-800 font-bold py-2 px-4 rounded hover:bg-red-200"
+                        data-time="10">困難 (10秒)</button>
                 </div>
             </div>
 
@@ -40,53 +61,72 @@
                         <span id="timer" class="text-xs sm:text-sm font-medium text-gray-600">0</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div id="timer-bar" class="timer-bar w-full"></div> 
+                        <div id="timer-bar" class="timer-bar w-full"></div>
                     </div>
                 </div>
-                
+
                 <div id="game-container" class="mb-8 relative">
                     <div class="flex justify-center space-x-2 sm:space-x-3 md:space-x-4 mb-8">
-                        <div id="char1" class="idiom-character w-12 h-12 text-xl sm:w-14 sm:h-14 sm:text-2xl md:w-[60px] md:h-[60px] md:text-[28px] font-medium"></div>
-                        <div id="char2" class="idiom-character w-12 h-12 text-xl sm:w-14 sm:h-14 sm:text-2xl md:w-[60px] md:h-[60px] md:text-[28px] font-medium"></div>
-                        <div id="char3" class="idiom-character w-12 h-12 text-xl sm:w-14 sm:h-14 sm:text-2xl md:w-[60px] md:h-[60px] md:text-[28px] font-medium"></div>
-                        <div id="char4" class="idiom-character w-12 h-12 text-xl sm:w-14 sm:h-14 sm:text-2xl md:w-[60px] md:h-[60px] md:text-[28px] font-medium"></div>
+                        <div id="char1"
+                            class="idiom-character w-12 h-12 text-xl sm:w-14 sm:h-14 sm:text-2xl md:w-[60px] md:h-[60px] md:text-[28px] font-medium">
+                        </div>
+                        <div id="char2"
+                            class="idiom-character w-12 h-12 text-xl sm:w-14 sm:h-14 sm:text-2xl md:w-[60px] md:h-[60px] md:text-[28px] font-medium">
+                        </div>
+                        <div id="char3"
+                            class="idiom-character w-12 h-12 text-xl sm:w-14 sm:h-14 sm:text-2xl md:w-[60px] md:h-[60px] md:text-[28px] font-medium">
+                        </div>
+                        <div id="char4"
+                            class="idiom-character w-12 h-12 text-xl sm:w-14 sm:h-14 sm:text-2xl md:w-[60px] md:h-[60px] md:text-[28px] font-medium">
+                        </div>
                     </div>
-                    
+
                     <div class="mb-6">
-                        <label htmlFor="answer" class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer">請填入缺少的字：</label>
+                        <label htmlFor="answer"
+                            class="block text-sm font-medium text-gray-700 mb-2 cursor-pointer">請填入缺少的字：</label>
                         <div class="flex">
-                            <input type="text" id="answer" class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg" maxlength="1" autocomplete="off">
-                            <button id="submit-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-r-md">
+                            <input type="text" id="answer"
+                                class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                                maxlength="1" autocomplete="off">
+                            <button id="submit-btn"
+                                class="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-r-md">
                                 確定
                             </button>
                         </div>
                     </div>
-                    
+
                     <div id="feedback" class="text-center text-lg font-medium mb-2 hidden"></div>
                     <!-- 成語解釋顯示區 -->
-                    <div id="meaning-box" class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 text-center mb-4 hidden animate-pop"></div>
+                    <div id="meaning-box"
+                        class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 text-center mb-4 hidden animate-pop">
+                    </div>
                 </div>
-                
+
                 <div class="flex justify-center mt-4 space-x-4">
-                    <button id="next-btn" class="btn bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md hidden">
+                    <button id="next-btn"
+                        class="btn bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-md hidden">
                         下一題
                     </button>
-                    <button id="restart-btn" class="btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-md">
+                    <button id="restart-btn"
+                        class="btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-md">
                         回首頁
                     </button>
                 </div>
             </div>
-            
+
             <div id="game-over-area" class="hidden text-center mt-8">
                 <h2 class="text-3xl font-bold text-red-600 mb-2">遊戲結束！</h2>
-                <p class="text-xl text-gray-700 mb-6">您的最終得分為：<span id="final-score" class="font-bold text-yellow-600 text-2xl">0</span></p>
-                <button id="play-again-btn" class="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg">
+                <p class="text-xl text-gray-700 mb-6">您的最終得分為：<span id="final-score"
+                        class="font-bold text-yellow-600 text-2xl">0</span></p>
+                <button id="play-again-btn"
+                    class="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg">
                     再玩一次
                 </button>
             </div>
-            
+
         </div>
     </div>
     <script type="module" src="/src/main.js"></script>
 </body>
+
 </html>

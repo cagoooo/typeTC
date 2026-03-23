@@ -1,0 +1,16 @@
+# 變更紀錄 (CHANGELOG)
+
+## [1.1.0] - 2026-03-23
+### ✨ 新增功能 (Added)
+- **Firebase 全域排行榜**：整合 Firestore 實作匿名分數上傳與查詢功能。
+- **暱稱記憶系統**：自動儲存玩家上次輸入的暱稱，優化上傳流程。
+- **專屬集合名稱**：將 Firestore 集合更名為 `typetc_leaderboard` 以避免與其他專案衝突。
+
+### 🛡️ 安全性 (Security)
+- **金鑰佔位符機制**：在 `index.html` 使用預留位置，由 `inject.py` 進行動態注入，落實 API Key 零洩漏規範。
+
+## [1.0.0] - 2026-03-21
+### ✨ 初始發布 (Initial Release)
+- **成語填空核心邏輯**：隨機產生題目、挖空與校對。
+- **UI/UX 體驗**：整合 Confetti 碎紙特效與 Web Audio API 合成音效。
+- **自動化部署**：建立 GitHub Actions CI/CD 流程同步至 GitHub Pages。

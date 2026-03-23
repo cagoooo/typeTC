@@ -9,14 +9,24 @@
     <!-- 引入自訂 CSS 會由 Vite 處理 Tailwind 的編譯 -->
     <link rel="stylesheet" href="./src/style.css">
     <!-- 強效清除：避免舊版 Service Worker 殘留導致 404 錯誤 -->
+    <!-- Firebase 配置佔位符 (由 .github/inject.py 在部署時替換) -->
     <script>
+        window.FIREBASE_CONFIG = {
+            apiKey: "__VITE_FIREBASE_API_KEY__",
+            authDomain: "__VITE_FIREBASE_AUTH_DOMAIN__",
+            projectId: "__VITE_FIREBASE_PROJECT_ID__",
+            storageBucket: "__VITE_FIREBASE_STORAGE_BUCKET__",
+            messagingSenderId: "__VITE_FIREBASE_MESSAGING_SENDER_ID__",
+            appId: "__VITE_FIREBASE_APP_ID__"
+        };
+
+        // 強效清除：避免舊版 Service Worker 殘留導致 404 錯誤
         (function () {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(function (registrations) {
                     for (let registration of registrations) {
                         registration.unregister().then(() => {
                             console.log('Old SW unregistered');
-                            // 若偵測到有舊 SW，強迫刷新一次
                             if (window.localStorage.getItem('sw_cleaned') !== 'true') {
                                 window.localStorage.setItem('sw_cleaned', 'true');
                                 window.location.reload();
@@ -61,6 +71,17 @@
                         data-time="15">一般 (15秒)</button>
                     <button class="diff-btn btn bg-red-100 text-red-800 font-bold py-2 px-4 rounded hover:bg-red-200"
                         data-time="10">困難 (10秒)</button>
+                </div>
+                <div class="mt-4">
+                    <button id="show-leaderboard-btn"
+                        class="text-blue-600 hover:text-blue-800 font-bold flex items-center justify-center mx-auto transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        查看榮譽排行榜
+                    </button>
                 </div>
             </div>
 
@@ -125,13 +146,79 @@
             </div>
 
             <div id="game-over-area" class="hidden text-center mt-8">
-                <h2 class="text-3xl font-bold text-red-600 mb-2">遊戲結束！</h2>
-                <p class="text-xl text-gray-700 mb-6">您的最終得分為：<span id="final-score"
-                        class="font-bold text-yellow-600 text-2xl">0</span></p>
-                <button id="play-again-btn"
-                    class="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg">
-                    再玩一次
-                </button>
+                <h2 class="text-3xl font-bold text-red-600 mb-2 font-notoSans">遊戲結束！</h2>
+                <p class="text-xl text-gray-700 mb-4 font-notoSans">您的最終得分為：<span id="final-score"
+                        class="font-bold text-yellow-600 text-3xl">0</span></p>
+
+                <div id="nickname-section" class="mb-6 bg-blue-50 p-6 rounded-xl border border-blue-100 shadow-inner">
+                    <p class="text-blue-800 mb-3 font-medium">恭喜打破紀錄！請輸入您的暱稱上傳排行：</p>
+                    <div class="flex max-w-xs mx-auto">
+                        <input type="text" id="nickname-input"
+                            class="flex-1 px-4 py-2 border-2 border-blue-300 rounded-l-lg focus:outline-none focus:border-blue-500 text-center font-bold"
+                            placeholder="您的暱稱" maxlength="10">
+                        <button id="upload-score-btn"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r-lg transition-colors">
+                            上傳
+                        </button>
+                    </div>
+                    <p id="upload-status" class="mt-2 text-sm hidden"></p>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+                    <button id="play-again-btn"
+                        class="btn bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform transition active:scale-95">
+                        再玩一次
+                    </button>
+                    <button id="view-leaderboard-btn"
+                        class="btn bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform transition active:scale-95">
+                        排行榜
+                    </button>
+                </div>
+            </div>
+
+            <!-- 排行榜彈窗 -->
+            <div id="leaderboard-modal"
+                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm hidden">
+                <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-pop">
+                    <div
+                        class="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white flex justify-between items-center">
+                        <h3 class="text-xl font-bold flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            榮譽排行榜 (TOP 10)
+                        </h3>
+                        <button id="close-leaderboard-btn" class="text-white/80 hover:text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="p-6 max-h-[60vh] overflow-y-auto">
+                        <table class="w-full text-left">
+                            <thead class="border-b-2 border-gray-100">
+                                <tr>
+                                    <th class="py-3 px-2 font-bold text-gray-600">排名</th>
+                                    <th class="py-3 px-2 font-bold text-gray-600">暱稱</th>
+                                    <th class="py-3 px-2 font-bold text-gray-600 text-right">分數</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body" class="divide-y divide-gray-50">
+                                <!-- 動態載入 -->
+                                <tr>
+                                    <td colspan="3" class="py-8 text-center text-gray-400 italic">載入中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="bg-gray-50 p-4 text-center">
+                        <p class="text-xs text-gray-400">僅顯示全域前 10 名的高分紀錄</p>
+                    </div>
+                </div>
             </div>
 
         </div>

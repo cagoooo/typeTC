@@ -4,7 +4,14 @@ import os
 # Provide keys and fallback value mapping here
 # Since this project does not yet connect to Firebase, the inject dictionary is empty
 # Ensure this script works to pass the pipeline
-config = {}
+config = {
+    'VITE_FIREBASE_API_KEY': '',
+    'VITE_FIREBASE_AUTH_DOMAIN': '',
+    'VITE_FIREBASE_PROJECT_ID': '',
+    'VITE_FIREBASE_STORAGE_BUCKET': '',
+    'VITE_FIREBASE_MESSAGING_SENDER_ID': '',
+    'VITE_FIREBASE_APP_ID': ''
+}
 
 def inject_secrets():
     file_path = 'dist/index.html'

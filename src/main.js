@@ -1,6 +1,34 @@
 import { idioms } from './data/idioms.js';
 import confetti from 'canvas-confetti';
 
+// Firebase Imports
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp } from 'firebase/firestore';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+
+// Firebase Config
+// 優先讀取 window.FIREBASE_CONFIG (由 inject.py 注入)，否則讀取 import.meta.env (本地開發)
+const firebaseConfig = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey !== "__VITE_FIREBASE_API_KEY__")
+    ? window.FIREBASE_CONFIG
+    : {
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+        appId: import.meta.env.VITE_FIREBASE_APP_ID
+    };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Anonymous Auth
+signInAnonymously(auth).catch((error) => {
+    console.error("Firebase 匿名登入失敗:", error);
+});
+
 let currentIdiomObj = null;
 let blankIndex = 0;
 let score = 0;
@@ -9,6 +37,7 @@ let initialTime = 15;
 let timeLeft = initialTime;
 let timer;
 let gameActive = false;
+let scoreUploaded = false;
 
 // Audio context stuff
 let audioCtx = null;
@@ -80,6 +109,17 @@ const gameOverArea = document.getElementById("game-over-area");
 const finalScoreElement = document.getElementById("final-score");
 const playAgainBtn = document.getElementById("play-again-btn");
 
+// Leaderboard Elements
+const nicknameSection = document.getElementById("nickname-section");
+const nicknameInput = document.getElementById("nickname-input");
+const uploadScoreBtn = document.getElementById("upload-score-btn");
+const uploadStatus = document.getElementById("upload-status");
+const showLeaderboardBtn = document.getElementById("show-leaderboard-btn");
+const viewLeaderboardBtn = document.getElementById("view-leaderboard-btn");
+const leaderboardModal = document.getElementById("leaderboard-modal");
+const closeLeaderboardBtn = document.getElementById("close-leaderboard-btn");
+const leaderboardBody = document.getElementById("leaderboard-body");
+
 // Difficulty selection Event Listeners
 document.querySelectorAll('.diff-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -99,6 +139,7 @@ function updateLives() {
 function startGame() {
     score = 0;
     lives = 3;
+    scoreUploaded = false;
     scoreElement.textContent = score;
     updateLives();
 
@@ -117,6 +158,17 @@ function showGameOver() {
     gameArea.classList.add('hidden');
     gameOverArea.classList.remove('hidden');
     finalScoreElement.textContent = score;
+
+    // 如果分數大於 0，顯示暱稱輸入區
+    if (score > 0) {
+        nicknameSection.classList.remove('hidden');
+        nicknameInput.value = localStorage.getItem('idiom_nickname') || "";
+        uploadStatus.classList.add('hidden');
+        uploadScoreBtn.disabled = false;
+        uploadScoreBtn.textContent = "上傳";
+    } else {
+        nicknameSection.classList.add('hidden');
+    }
 }
 
 playAgainBtn.addEventListener('click', () => {
@@ -287,6 +339,76 @@ function gameOverTimeUp() {
     }
 }
 
+// Leaderboard Logic
+async function uploadScore() {
+    if (scoreUploaded) return;
+    const nickname = nicknameInput.value.trim() || "無名大俠";
+    localStorage.setItem('idiom_nickname', nickname);
+
+    uploadStatus.textContent = "上傳中...";
+    uploadStatus.classList.remove('hidden', 'text-red-500', 'text-green-500');
+    uploadStatus.classList.add('text-blue-500');
+    uploadScoreBtn.disabled = true;
+
+    try {
+        await addDoc(collection(db, "typetc_leaderboard"), {
+            nickname: nickname,
+            score: score,
+            difficulty: initialTime === 20 ? "簡單" : initialTime === 15 ? "一般" : "困難",
+            timestamp: serverTimestamp()
+        });
+        uploadStatus.textContent = "✅ 上傳成功！";
+        uploadStatus.classList.replace('text-blue-500', 'text-green-500');
+        scoreUploaded = true;
+        uploadScoreBtn.textContent = "已上傳";
+    } catch (error) {
+        console.error("上傳失敗:", error);
+        uploadStatus.textContent = "❌ 上傳失敗，請稍後再試";
+        uploadStatus.classList.replace('text-blue-500', 'text-red-500');
+        uploadScoreBtn.disabled = false;
+    }
+}
+
+async function fetchLeaderboard() {
+    leaderboardBody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-400 italic font-notoSans animate-pulse">神龍盤旋中...</td></tr>';
+
+    try {
+        const q = query(
+            collection(db, "typetc_leaderboard"),
+            orderBy("score", "desc"),
+            limit(10)
+        );
+        const querySnapshot = await getDocs(q);
+
+        leaderboardBody.innerHTML = '';
+        if (querySnapshot.empty) {
+            leaderboardBody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-400 font-notoSans">目前尚無紀錄</td></tr>';
+            return;
+        }
+
+        let index = 1;
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const row = document.createElement('tr');
+            row.className = index <= 3 ? 'bg-yellow-50/50' : '';
+
+            const medal = index === 1 ? '🥇' : index === 2 ? '🥈' : index === 3 ? '🥉' : index;
+
+            row.innerHTML = `
+                <td class="py-3 px-2 font-bold ${index <= 3 ? 'text-yellow-600' : 'text-gray-500'}">${medal}</td>
+                <td class="py-3 px-2 font-medium text-gray-800">${data.nickname || '無名氏'}</td>
+                <td class="py-3 px-2 text-right font-bold text-blue-600">${data.score}</td>
+            `;
+            leaderboardBody.appendChild(row);
+            index++;
+        });
+    } catch (error) {
+        console.error("讀取排行榜失敗:", error);
+        leaderboardBody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-red-500 font-notoSans">讀取失敗，請確認網路連線</td></tr>';
+    }
+}
+
+// Global Event Listeners
 submitBtn.addEventListener("click", checkAnswer);
 
 answerInput.addEventListener("keypress", (e) => {
@@ -306,4 +428,24 @@ restartBtn.addEventListener("click", () => {
     gameArea.classList.add('hidden');
     gameOverArea.classList.add('hidden');
     clearInterval(timer);
+});
+
+uploadScoreBtn.addEventListener('click', uploadScore);
+
+showLeaderboardBtn.addEventListener('click', () => {
+    leaderboardModal.classList.remove('hidden');
+    fetchLeaderboard();
+});
+
+viewLeaderboardBtn.addEventListener('click', () => {
+    leaderboardModal.classList.remove('hidden');
+    fetchLeaderboard();
+});
+
+closeLeaderboardBtn.addEventListener('click', () => {
+    leaderboardModal.classList.add('hidden');
+});
+
+leaderboardModal.addEventListener('click', (e) => {
+    if (e.target === leaderboardModal) leaderboardModal.classList.add('hidden');
 });

@@ -39,10 +39,254 @@ let blankIndex = 0;
 let score = 0;
 let lives = 3;
 let initialTime = 15;
+let baseInitialTime = 15; // 儲存難度選擇的基準時間
 let timeLeft = initialTime;
 let timer;
 let gameActive = false;
 let scoreUploaded = false;
+let consecutiveCorrect = 0; // 連續答對次數，用於 AutoPace
+
+// --- 教學權威化核心邏輯 ---
+
+// 錯題管理器 (MistakeManager)
+const MistakeManager = {
+    STORAGE_KEY: 'typetc_mistakes',
+    getMistakes() {
+        return JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
+    },
+    record(idiom) {
+        const mistakes = this.getMistakes();
+        mistakes[idiom] = (mistakes[idiom] || 0) + 1;
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(mistakes));
+    },
+    clear(idiom) {
+        const mistakes = this.getMistakes();
+        if (mistakes[idiom]) {
+            delete mistakes[idiom];
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(mistakes));
+        }
+    },
+    getWeightedIdiom() {
+        const mistakes = this.getMistakes();
+        const mistakeList = Object.keys(mistakes);
+
+        // 25% 機率優先出錯題 (如果有錯題的話)
+        if (mistakeList.length > 0 && Math.random() < 0.25) {
+            const randomMistake = mistakeList[Math.floor(Math.random() * mistakeList.length)];
+            return idioms.find(i => i.idiom === randomMistake) || idioms[Math.floor(Math.random() * idioms.length)];
+        }
+        return idioms[Math.floor(Math.random() * idioms.length)];
+    }
+};
+
+// 動態難度校正 (AutoPace)
+const AutoPace = {
+    adjust() {
+        // 連續答對 3 題，且目前時間大於 5 秒，則縮短 1 秒 (加點難度)
+        if (consecutiveCorrect >= 3 && initialTime > 5) {
+            initialTime -= 1;
+            consecutiveCorrect = 0;
+            this.showAdjustmentHint("⚡ 節奏加快！");
+        }
+        // 答錯時，恢復到基準時間
+        else if (consecutiveCorrect < 0) {
+            if (initialTime < baseInitialTime) {
+                initialTime = baseInitialTime;
+                this.showAdjustmentHint("🐢 節奏放緩...");
+            }
+            consecutiveCorrect = 0;
+        }
+    },
+    reset(baseTime) {
+        initialTime = baseTime;
+        baseInitialTime = baseTime;
+        consecutiveCorrect = 0;
+    },
+    showAdjustmentHint(text) {
+        const hint = document.createElement("div");
+        hint.className = "fixed top-1/4 left-1/2 -translate-x-1/2 bg-red-800/90 text-white px-6 py-3 rounded-full font-bold shadow-2xl z-50 animate-pop pointer-events-none title-font text-lg";
+        hint.textContent = text;
+        document.body.appendChild(hint);
+        setTimeout(() => hint.remove(), 2000);
+    }
+};
+
+// --- 古典氛圍增強邏輯 (BGM & Sakura) ---
+
+class SakuraEffect {
+    constructor() {
+        this.canvas = document.getElementById("sakura-canvas");
+        if (!this.canvas) return;
+        this.ctx = this.canvas.getContext("2d");
+        this.petals = [];
+        this.maxPetals = 40;
+        this.active = false;
+
+        window.addEventListener("resize", () => this.resize());
+        this.resize();
+    }
+
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+
+    start() {
+        if (this.active) return;
+        this.active = true;
+        this.petals = Array.from({ length: this.maxPetals }, () => this.createPetal(true));
+        this.animate();
+    }
+
+    createPetal(initial = false) {
+        return {
+            x: Math.random() * this.canvas.width,
+            y: initial ? Math.random() * this.canvas.height : -20,
+            radius: Math.random() * 5 + 2,
+            speedY: Math.random() * 1 + 0.5,
+            speedX: Math.random() * 1 - 0.5,
+            sway: Math.random() * 2,
+            angle: Math.random() * Math.PI * 2,
+            rotateSpeed: Math.random() * 0.02,
+            opacity: Math.random() * 0.5 + 0.3
+        };
+    }
+
+    animate() {
+        if (!this.active) return;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.petals.forEach((p, i) => {
+            p.y += p.speedY;
+            p.x += p.speedX + Math.sin(p.angle) * 0.5;
+            p.angle += p.rotateSpeed;
+
+            this.ctx.save();
+            this.ctx.translate(p.x, p.y);
+            this.ctx.rotate(p.angle);
+            this.ctx.beginPath();
+            this.ctx.ellipse(0, 0, p.radius * 1.5, p.radius, 0, 0, Math.PI * 2);
+            this.ctx.fillStyle = `rgba(255, 192, 203, ${p.opacity})`; // 略微加深粉色
+            this.ctx.fill();
+            this.ctx.restore();
+
+            if (p.y > this.canvas.height) {
+                this.petals[i] = this.createPetal();
+            }
+        });
+
+        requestAnimationFrame(() => this.animate());
+    }
+}
+
+class BGMPlayer {
+    constructor() {
+        this.tracks = [
+            "https://cdn.pixabay.com/audio/2025/06/02/audio_bf62d2ab24.mp3",
+            "https://cdn.pixabay.com/audio/2026/02/18/audio_3ee52b1293.mp3",
+            "https://cdn.pixabay.com/audio/2025/05/26/audio_a4dc9cb5b2.mp3",
+            "https://cdn.pixabay.com/audio/2025/11/11/audio_aadd2548f6.mp3",
+            "https://cdn.pixabay.com/audio/2025/11/11/audio_255d96a3c5.mp3",
+            "https://cdn.pixabay.com/audio/2025/11/11/audio_c32e8f6a8a.mp3",
+            "https://cdn.pixabay.com/audio/2021/12/17/audio_8a31f4ec17.mp3"
+        ];
+        this.currentIndex = Math.floor(Math.random() * this.tracks.length);
+        this.audio = new Audio();
+        this.audio.loop = false;
+        this.isPlaying = true; // 預設為開啟
+
+        this.audio.addEventListener("ended", () => this.next());
+
+        this.toggleBtn = document.getElementById("bgm-toggle");
+        this.nextBtn = document.getElementById("bgm-next");
+        this.onIcon = document.getElementById("music-on-icon");
+        this.offIcon = document.getElementById("music-off-icon");
+
+        this.toggleBtn?.addEventListener("click", () => this.toggle());
+        this.nextBtn?.addEventListener("click", () => this.next());
+
+        this.updateUI(this.isPlaying);
+    }
+
+    start() {
+        if (!this.isPlaying) return; // 若使用者先點關閉，就不啟動
+        this.loadTrack();
+        this.audio.play().then(() => {
+            this.updateUI(true);
+        }).catch(err => console.log("BGM 播放受阻 (等候互動):", err));
+    }
+
+    loadTrack() {
+        this.audio.src = this.tracks[this.currentIndex];
+        this.audio.volume = 0.6; // 音量提升
+    }
+
+    toggle() {
+        if (this.audio.paused) {
+            this.audio.play();
+            this.updateUI(true);
+        } else {
+            this.audio.pause();
+            this.updateUI(false);
+        }
+    }
+
+    next() {
+        this.currentIndex = (this.currentIndex + 1) % this.tracks.length;
+        this.loadTrack();
+        this.audio.play();
+        this.updateUI(true);
+    }
+
+    updateUI(playing) {
+        this.isPlaying = playing;
+        if (playing) {
+            this.onIcon?.classList.remove("hidden");
+            this.offIcon?.classList.add("hidden");
+            this.toggleBtn?.classList.add("music-playing");
+            this.nextBtn?.classList.remove("hidden");
+        } else {
+            this.onIcon?.classList.add("hidden");
+            this.offIcon?.classList.remove("hidden");
+            this.toggleBtn?.classList.remove("music-playing");
+        }
+    }
+}
+
+const sakura = new SakuraEffect();
+const bgm = new BGMPlayer();
+window.sakura = sakura;
+window.bgm = bgm;
+
+// 辭典彈窗邏輯
+const DictPopover = {
+    modal: document.getElementById("dict-modal"),
+    title: document.getElementById("dict-title"),
+    idiom: document.getElementById("dict-idiom"),
+    zhuyin: document.getElementById("dict-zhuyin"),
+    meaning: document.getElementById("dict-meaning"),
+    example: document.getElementById("dict-example"),
+    closeBtn: document.getElementById("close-dict-btn"),
+    hint: document.getElementById("dict-hint"),
+
+    init() {
+        this.closeBtn.addEventListener("click", () => this.hide());
+        this.modal.addEventListener("click", (e) => {
+            if (e.target === this.modal) this.hide();
+        });
+    },
+    show(obj) {
+        this.idiom.textContent = obj.idiom;
+        this.zhuyin.textContent = obj.zhuyin || "（暫無注音）";
+        this.meaning.textContent = obj.meaning;
+        this.example.textContent = obj.example || "（暫無例句）";
+        this.modal.classList.remove("hidden");
+    },
+    hide() {
+        this.modal.classList.add("hidden");
+    }
+};
+DictPopover.init();
 
 // Audio context stuff
 let audioCtx = null;
@@ -129,7 +373,7 @@ const leaderboardBody = document.getElementById("leaderboard-body");
 document.querySelectorAll('.diff-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         initAudio(); // 初始化音訊語境
-        initialTime = parseInt(e.target.dataset.time);
+        AutoPace.reset(parseInt(e.target.dataset.time));
         startGame();
     });
 });
@@ -187,24 +431,34 @@ function loadNewIdiom() {
     feedbackElement.classList.add("hidden");
     meaningBox.classList.add("hidden");
     meaningBox.classList.remove("animate-pop");
+    DictPopover.hint.classList.add("hidden");
 
     submitBtn.classList.remove("hidden");
     answerInput.disabled = false;
     nextBtn.classList.add("hidden");
 
-    const randomIndex = Math.floor(Math.random() * idioms.length);
-    currentIdiomObj = idioms[randomIndex];
+    // 使用 MistakeManager 抽選成語
+    currentIdiomObj = MistakeManager.getWeightedIdiom();
     blankIndex = Math.floor(Math.random() * 4);
 
     charElements.forEach((charElement, i) => {
-        charElement.classList.remove("blank", "correct", "incorrect");
+        charElement.classList.remove("blank", "correct", "incorrect", "clickable");
+        charElement.onclick = null; // 清除舊的點擊事件
+
         if (i === blankIndex) {
             charElement.textContent = "";
             charElement.classList.add("blank");
         } else {
             charElement.textContent = currentIdiomObj.idiom[i];
+            // 讓已顯示的字可以點擊查看辭典
+            charElement.classList.add("clickable");
+            charElement.onclick = () => DictPopover.show(currentIdiomObj);
         }
     });
+
+    // 顯示「點擊查看」提示
+    DictPopover.hint.classList.remove("hidden");
+
     gameActive = true;
 }
 
@@ -229,11 +483,15 @@ function checkAnswer() {
         score += 10;
         scoreElement.textContent = score;
         blankElement.classList.add("correct");
+        consecutiveCorrect++;
 
         feedbackElement.textContent = "答對了！ 🎉";
         feedbackElement.classList.remove("hidden", "text-red-600");
         feedbackElement.classList.add("text-green-600");
         playSuccessSound();
+
+        // 答對則從錯題本中移除 (如果存在的話)
+        MistakeManager.clear(currentIdiomObj.idiom);
 
         // 慶祝撒花 (配色調整為：緋紅、金、翠綠)
         confetti({
@@ -245,6 +503,10 @@ function checkAnswer() {
     } else {
         lives -= 1;
         updateLives();
+        consecutiveCorrect = -1; // 標記為錯，觸發節奏放緩
+
+        // 記錄到錯題本
+        MistakeManager.record(currentIdiomObj.idiom);
 
         blankElement.classList.add("incorrect");
 
@@ -255,8 +517,14 @@ function checkAnswer() {
 
         setTimeout(() => {
             blankElement.textContent = correctAnswer;
+            // 答錯後顯示的正確字元也變為可點擊
+            blankElement.classList.add("clickable");
+            blankElement.onclick = () => DictPopover.show(currentIdiomObj);
         }, 800);
     }
+
+    // 更新動態難度
+    AutoPace.adjust();
 
     // Show meaning
     meaningBox.textContent = `📖 釋義：${currentIdiomObj.meaning}`;
@@ -319,11 +587,20 @@ function gameOverTimeUp() {
 
     lives -= 1;
     updateLives();
+    consecutiveCorrect = -1;
+
+    // 記錄時間到的錯題
+    MistakeManager.record(currentIdiomObj.idiom);
 
     const blankElement = charElements[blankIndex];
     blankElement.textContent = currentIdiomObj.idiom[blankIndex];
     blankElement.classList.remove("blank", "animate-pulse-slow");
     blankElement.classList.add("incorrect", "animate-shake");
+    blankElement.classList.add("clickable");
+    blankElement.onclick = () => DictPopover.show(currentIdiomObj);
+
+    // 難度校正
+    AutoPace.adjust();
 
     feedbackElement.textContent = `時間到！正確答案是「${currentIdiomObj.idiom[blankIndex]}」`;
     feedbackElement.classList.remove("hidden", "text-green-600");
@@ -430,6 +707,14 @@ async function syncOfflineScores() {
 window.addEventListener('online', syncOfflineScores);
 // 初始化時也檢查一次
 if (navigator.onLine) syncOfflineScores();
+
+// 啟動 BGM 與 櫻花的全域入口
+function startAtmosphere() {
+    console.log("🌸 啟動氛圍特效...");
+    if (sakura) sakura.start();
+    if (bgm) bgm.start();
+}
+window.startAtmosphere = startAtmosphere; // 導出至全域以供 HTML onclick 使用
 
 async function fetchLeaderboard() {
     leaderboardBody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-400 italic font-notoSans animate-pulse">神龍盤旋中...</td></tr>';

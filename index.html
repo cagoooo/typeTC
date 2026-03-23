@@ -83,9 +83,41 @@
     </script>
 </head>
 
-<body class="min-h-screen flex items-center justify-center py-6 px-4 sm:px-6 lg:px-8">
+<body class="bg-stone-50 min-h-screen flex items-center justify-center p-4 font-notoSans relative overflow-x-hidden">
+
+    <!-- 櫻花特效畫布 -->
+    <canvas id="sakura-canvas" class="fixed inset-0 pointer-events-none -z-10"></canvas>
+
     <!-- 背景裝飾層 -->
-    <div class="fixed inset-0 -z-10 bg-oriental-pattern opacity-10 pointer-events-none"></div>
+    <div class="fixed inset-0 -z-20 bg-oriental-pattern opacity-10 pointer-events-none"></div>
+
+    <!-- 音效與音樂控制 (右上角) -->
+    <div class="fixed top-4 right-4 z-50 flex space-x-2">
+        <button id="bgm-toggle"
+            class="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-lg border border-red-100 hover:bg-red-50 transition-all group"
+            title="開啟/關閉音樂">
+            <svg id="music-on-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-700" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+            <svg id="music-off-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400 hidden" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+            </svg>
+        </button>
+        <button id="bgm-next"
+            class="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-lg border border-red-100 hover:bg-red-50 transition-all hidden"
+            title="下一首">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-700" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+        </button>
+    </div>
 
     <div
         class="w-full max-w-2xl bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-white/20 transition-all duration-500">
@@ -117,13 +149,13 @@
                 <div class="flex flex-wrap justify-center gap-3 sm:gap-4">
                     <button
                         class="diff-btn btn bg-red-100 text-red-800 font-bold py-2.5 px-6 rounded-xl hover:bg-red-200 transition-all"
-                        data-time="20">簡單 (20秒)</button>
+                        data-time="20" onclick="startAtmosphere()">簡單 (20秒)</button>
                     <button
                         class="diff-btn btn bg-amber-100 text-amber-800 font-bold py-2.5 px-6 rounded-xl hover:bg-amber-200 transition-all"
-                        data-time="15">一般 (15秒)</button>
+                        data-time="15" onclick="startAtmosphere()">一般 (15秒)</button>
                     <button
                         class="diff-btn btn bg-slate-800 text-white font-bold py-2.5 px-6 rounded-xl hover:bg-slate-900 transition-all"
-                        data-time="10">困難 (10秒)</button>
+                        data-time="10" onclick="startAtmosphere()">困難 (10秒)</button>
                 </div>
                 <div class="mt-6">
                     <button id="show-leaderboard-btn"
@@ -151,7 +183,7 @@
                 </div>
 
                 <div id="game-container" class="mb-8 relative">
-                    <div class="flex justify-center space-x-2 sm:space-x-3 md:space-x-4 mb-8">
+                    <div class="flex justify-center space-x-2 sm:space-x-3 md:space-x-4 mb-4">
                         <div id="char1"
                             class="idiom-character w-12 h-12 text-xl sm:w-14 sm:h-14 sm:text-2xl md:w-[60px] md:h-[60px] md:text-[28px] font-medium">
                         </div>
@@ -165,6 +197,11 @@
                             class="idiom-character w-12 h-12 text-xl sm:w-14 sm:h-14 sm:text-2xl md:w-[60px] md:h-[60px] md:text-[28px] font-medium">
                         </div>
                     </div>
+
+                    <!-- 點擊查看提示 -->
+                    <p id="dict-hint" class="text-center text-[10px] text-gray-400 mb-6 hidden animate-pulse">
+                        💡 點擊上方文字查看詳細釋義與注音
+                    </p>
 
                     <div class="mb-6">
                         <label htmlFor="answer"
@@ -285,6 +322,44 @@
 
         </div>
     </div>
+    <!-- 成語辭典彈窗 (Dictionary Popover) -->
+    <div id="dict-modal" class="dictionary-modal hidden">
+        <div
+            class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-pop border border-red-100 p-0">
+            <div class="bg-red-800 p-4 text-white flex justify-between items-center">
+                <h3 class="font-bold title-font tracking-widest text-lg" id="dict-title">成語詳解</h3>
+                <button id="close-dict-btn" class="text-white/80 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <div class="flex items-baseline space-x-2 mb-1">
+                        <span class="text-2xl font-bold text-red-900 title-font" id="dict-idiom"></span>
+                        <span class="text-sm zhuyin-text" id="dict-zhuyin"></span>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">【釋義】</h4>
+                        <p class="text-gray-700 text-sm leading-relaxed" id="dict-meaning"></p>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">【例句】</h4>
+                        <p class="text-gray-600 text-sm italic leading-relaxed" id="dict-example"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-red-50 p-3 text-center border-t border-red-100">
+                <p class="text-[10px] text-red-800/60 font-medium">溫故而知新，可以為師矣</p>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
 </body>
 

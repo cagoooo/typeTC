@@ -8,7 +8,12 @@ import { getAuth, signInAnonymously } from 'firebase/auth';
 
 // Firebase Config
 // 優先讀取 window.FIREBASE_CONFIG (由 inject.py 注入)，否則讀取 import.meta.env (本地開發)
-const firebaseConfig = (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey !== "__VITE_FIREBASE_API_KEY__")
+const isConfigValid = window.FIREBASE_CONFIG &&
+    window.FIREBASE_CONFIG.apiKey &&
+    window.FIREBASE_CONFIG.apiKey !== "__VITE_FIREBASE_API_KEY__" &&
+    window.FIREBASE_CONFIG.apiKey.trim() !== "";
+
+const firebaseConfig = isConfigValid
     ? window.FIREBASE_CONFIG
     : {
         apiKey: import.meta.env.VITE_FIREBASE_API_KEY,

@@ -7,16 +7,6 @@
     <title>成語填空遊戲</title>
     <!-- 引入自訂 CSS 會由 Vite 處理 Tailwind 的編譯 -->
     <link rel="stylesheet" href="/src/style.css">
-    <!-- 避免舊版 Service Worker 殘留導致 404 錯誤 -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function (registrations) {
-                for (let registration of registrations) {
-                    registration.unregister();
-                }
-            });
-        }
-    </script>
 </head>
 
 <body class="py-4 px-2 sm:p-4">

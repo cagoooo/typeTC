@@ -1,4 +1,5 @@
 import { idioms } from './data/idioms.js';
+import confetti from 'canvas-confetti';
 
 let currentIdiomObj = null;
 let blankIndex = 0;
@@ -37,13 +38,22 @@ function playTone(freq, type, duration) {
 }
 
 function playSuccessSound() {
-    playTone(600, 'sine', 0.1);
-    setTimeout(() => playTone(800, 'sine', 0.2), 100);
+    playTone(523.25, 'sine', 0.1); // C5
+    setTimeout(() => playTone(659.25, 'sine', 0.1), 100); // E5
+    setTimeout(() => playTone(783.99, 'sine', 0.2), 200); // G5
 }
 
 function playErrorSound() {
-    playTone(300, 'sawtooth', 0.1);
-    setTimeout(() => playTone(250, 'sawtooth', 0.2), 100);
+    playTone(220, 'triangle', 0.15); // A3
+    setTimeout(() => playTone(196, 'triangle', 0.3), 150); // G3
+}
+
+function playTickSound() {
+    playTone(1000, 'sine', 0.05); // High-pitched short tick
+}
+
+function playCountdownWarning() {
+    playTone(1500, 'sine', 0.05); // High-pitched alert
 }
 
 // Elements
@@ -167,6 +177,14 @@ function checkAnswer() {
         feedbackElement.classList.remove("hidden", "text-red-600");
         feedbackElement.classList.add("text-green-600");
         playSuccessSound();
+
+        // 慶祝撒花
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+        });
     } else {
         lives -= 1;
         updateLives();
@@ -217,10 +235,14 @@ function startTimer() {
 
         if (timeLeft <= 5 && timeLeft > 0) {
             timerBarElement.style.backgroundColor = "#f59e0b";
+            playCountdownWarning(); // 倒數 5 秒警示音
         } else if (timeLeft <= 0) {
             timerBarElement.style.backgroundColor = "#ef4444";
             clearInterval(timer);
             gameOverTimeUp();
+        } else {
+            // 每秒的小滴答聲可選，先加在最後 3 秒更顯著
+            if (timeLeft <= 10) playTickSound();
         }
     }, 1000);
 }

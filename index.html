@@ -65,10 +65,13 @@
         };
 
         // 強效清除：避免舊版 Service Worker 殘留導致 404 錯誤
+        // 只處理本工具（/typeTC/）的註冊，同網域其他工具的離線程式不動
         (function () {
             if ('serviceWorker' in navigator) {
+                var OWN_SCOPE = location.origin + '/typeTC/';
                 navigator.serviceWorker.getRegistrations().then(function (registrations) {
                     for (let registration of registrations) {
+                        if (registration.scope.indexOf(OWN_SCOPE) !== 0) continue;
                         registration.unregister().then(() => {
                             console.log('Old SW unregistered');
                             if (window.localStorage.getItem('sw_cleaned') !== 'true') {
@@ -354,7 +357,7 @@
                             title="阿凱老師教育科技創新專區"
                             class="font-bold text-red-700 border-b border-dotted border-red-700/70 hover:text-amber-600 hover:border-amber-600 transition-colors">阿凱老師</a><span class="hidden sm:inline" aria-hidden="true"> ・</span><span class="block sm:inline">桃園市龍潭區石門國民小學</span>
                     </p>
-                    <span class="text-xs font-bold text-red-800 rounded-full border border-red-200 bg-white/80 px-3 py-1">v1.3.2</span>
+                    <span class="text-xs font-bold text-red-800 rounded-full border border-red-200 bg-white/80 px-3 py-1">v1.3.3</span>
                 </div>
             </footer>
 

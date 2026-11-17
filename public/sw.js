@@ -1,4 +1,5 @@
-const CACHE_NAME = 'typetc-v1.3.2';
+const CACHE_PREFIX = 'typetc-';
+const CACHE_NAME = CACHE_PREFIX + 'v1.3.3';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -20,13 +21,13 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// 激活階段：清理舊快取
+// 激活階段：清理本工具的舊快取（只動 typetc- 開頭的，同網域其他工具的快取不動）
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
+                    if (cacheName.startsWith(CACHE_PREFIX) && cacheName !== CACHE_NAME) {
                         console.log('[SW] Removing old cache:', cacheName);
                         return caches.delete(cacheName);
                     }

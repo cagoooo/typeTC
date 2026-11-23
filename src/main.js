@@ -134,8 +134,9 @@ class SakuraEffect {
     start() {
         if (this.active) return;
         this.active = true;
+        this.lastTime = 0;
         this.petals = Array.from({ length: this.maxPetals }, () => this.createPetal(true));
-        this.animate();
+        requestAnimationFrame((t) => this.animate(t));
     }
 
     createPetal(initial = false) {
@@ -152,14 +153,17 @@ class SakuraEffect {
         };
     }
 
-    animate() {
+    animate(now) {
         if (!this.active) return;
+        // 以 60Hz 為基準換算位移倍率，120Hz 螢幕不會變快；切回分頁時上限 3 倍避免瞬移
+        const delta = this.lastTime ? Math.min((now - this.lastTime) / (1000 / 60), 3) : 1;
+        this.lastTime = now;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.petals.forEach((p, i) => {
-            p.y += p.speedY;
-            p.x += p.speedX + Math.sin(p.angle) * 0.5;
-            p.angle += p.rotateSpeed;
+            p.y += p.speedY * delta;
+            p.x += (p.speedX + Math.sin(p.angle) * 0.5) * delta;
+            p.angle += p.rotateSpeed * delta;
 
             this.ctx.save();
             this.ctx.translate(p.x, p.y);
@@ -175,7 +179,7 @@ class SakuraEffect {
             }
         });
 
-        requestAnimationFrame(() => this.animate());
+        requestAnimationFrame((t) => this.animate(t));
     }
 }
 
@@ -427,7 +431,14 @@ playAgainBtn.addEventListener('click', () => {
 
 function loadNewIdiom() {
     answerInput.value = "";
-    setTimeout(() => answerInput.focus(), 100); // 確保在渲染後取得焦點
+    answerInput.classList.remove("animate-shake");
+    setTimeout(() => {
+        answerInput.focus(); // 確保在渲染後取得焦點
+        // 觸控裝置的螢幕鍵盤彈出後，把題目區捲到可見範圍，避免被鍵盤遮住（桌機不捲動）
+        if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+            document.getElementById("game-container")?.scrollIntoView({ block: "center", behavior: "smooth" });
+        }
+    }, 100);
     feedbackElement.classList.add("hidden");
     meaningBox.classList.add("hidden");
     meaningBox.classList.remove("animate-pop");
@@ -485,7 +496,9 @@ function checkAnswer() {
         blankElement.classList.add("correct");
         consecutiveCorrect++;
 
-        feedbackElement.textContent = "答對了！ 🎉";
+        feedbackElement.textContent = consecutiveCorrect >= 2
+            ? `答對了！ 🎉 連續答對 ${consecutiveCorrect} 題`
+            : "答對了！ 🎉";
         feedbackElement.classList.remove("hidden", "text-red-600");
         feedbackElement.classList.add("text-green-600");
         playSuccessSound();
@@ -509,6 +522,12 @@ function checkAnswer() {
         MistakeManager.record(currentIdiomObj.idiom);
 
         blankElement.classList.add("incorrect");
+
+        // 答錯回饋：輸入框抖動 + 手機震動
+        answerInput.classList.remove("animate-shake");
+        void answerInput.offsetWidth; // 強制重繪以便重複觸發動畫
+        answerInput.classList.add("animate-shake");
+        if (navigator.vibrate) navigator.vibrate(80);
 
         feedbackElement.textContent = `答錯了！正確答案是「${correctAnswer}」`;
         feedbackElement.classList.remove("hidden", "text-green-600");
@@ -549,12 +568,16 @@ function startTimer() {
     timerBarElement.style.width = "100%";
     timerBarElement.style.backgroundColor = "#3b82f6";
 
+    // 記錄到期時間，每次以 Date.now() 換算剩餘秒數（分頁被節流也不會拖長時間）
+    const deadline = Date.now() + initialTime * 1000;
     timer = setInterval(() => {
         if (!gameActive) {
             clearInterval(timer);
             return;
         }
-        timeLeft--;
+        const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+        if (remaining === timeLeft) return;
+        timeLeft = remaining;
         timerElement.textContent = timeLeft;
         const percentage = (timeLeft / initialTime) * 100;
         timerBarElement.style.width = `${percentage}%`;
@@ -570,7 +593,7 @@ function startTimer() {
             // 每秒的小滴答聲可選，先加在最後 3 秒更顯著
             if (timeLeft <= 10) playTickSound();
         }
-    }, 1000);
+    }, 250);
 }
 
 function resetTimer() {
@@ -676,32 +699,73 @@ function saveScoreOffline(data) {
     localStorage.setItem('typetc_pending_scores', JSON.stringify(pendingScores));
 }
 
-// 同步本地暫存分數
-async function syncOfflineScores() {
+// 開始畫面上的離線成績提示（不用 confirm／alert，不會擋住遊戲）
+const offlineNotice = document.createElement('div');
+offlineNotice.id = 'offline-sync-notice';
+offlineNotice.className = 'hidden mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800';
+const offlineNoticeText = document.createElement('span');
+offlineNoticeText.className = 'font-medium';
+const offlineNoticeBtn = document.createElement('button');
+offlineNoticeBtn.type = 'button';
+offlineNoticeBtn.className = 'btn ml-2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-1 px-3 rounded-md';
+offlineNoticeBtn.textContent = '立即上傳';
+offlineNotice.append(offlineNoticeText, offlineNoticeBtn);
+difficultySelector.insertBefore(offlineNotice, difficultySelector.firstChild);
+
+let offlineSyncing = false;
+
+// 同步本地暫存分數：有資料時只顯示提示，按下按鈕才上傳
+function syncOfflineScores() {
     const pendingScores = JSON.parse(localStorage.getItem('typetc_pending_scores') || '[]');
-    if (pendingScores.length === 0) return;
+    if (pendingScores.length === 0) {
+        offlineNotice.classList.add('hidden');
+        return;
+    }
+    offlineNoticeText.textContent = `有 ${pendingScores.length} 筆離線成績尚未上傳`;
+    offlineNoticeBtn.classList.remove('hidden');
+    offlineNotice.classList.remove('hidden');
+}
 
-    if (confirm(`偵測到您有 ${pendingScores.length} 筆離線得分，是否立即同步至全球排行榜？`)) {
-        let successCount = 0;
-        for (const scoreData of pendingScores) {
-            try {
-                await addDoc(collection(db, "typetc_leaderboard"), {
-                    ...scoreData,
-                    timestamp: serverTimestamp() // 使用伺服器時間
-                });
-                successCount++;
-            } catch (err) {
-                console.error("同步單筆分數失敗:", err);
-            }
-        }
+offlineNoticeBtn.addEventListener('click', async () => {
+    if (offlineSyncing) return;
+    const pendingScores = JSON.parse(localStorage.getItem('typetc_pending_scores') || '[]');
+    if (pendingScores.length === 0) return syncOfflineScores();
 
-        if (successCount > 0) {
-            alert(`✅ 成功同步 ${successCount} 筆分數！`);
-            localStorage.removeItem('typetc_pending_scores');
-            fetchLeaderboard(); // 刷新排行榜
+    offlineSyncing = true;
+    offlineNoticeBtn.disabled = true;
+    offlineNoticeText.textContent = '離線成績上傳中...';
+
+    const failed = [];
+    for (const scoreData of pendingScores) {
+        try {
+            await addDoc(collection(db, "typetc_leaderboard"), {
+                ...scoreData,
+                timestamp: serverTimestamp() // 使用伺服器時間
+            });
+        } catch (err) {
+            console.error("同步單筆分數失敗:", err);
+            failed.push(scoreData);
         }
     }
-}
+
+    const successCount = pendingScores.length - failed.length;
+    if (failed.length === 0) {
+        localStorage.removeItem('typetc_pending_scores');
+    } else {
+        localStorage.setItem('typetc_pending_scores', JSON.stringify(failed));
+    }
+    offlineSyncing = false;
+    offlineNoticeBtn.disabled = false;
+
+    if (failed.length === 0) {
+        offlineNoticeText.textContent = `✅ 已上傳 ${successCount} 筆離線成績`;
+        offlineNoticeBtn.classList.add('hidden');
+        setTimeout(syncOfflineScores, 3000);
+    } else {
+        offlineNoticeText.textContent = `上傳成功 ${successCount} 筆，還有 ${failed.length} 筆尚未上傳`;
+    }
+    if (successCount > 0) fetchLeaderboard(); // 刷新排行榜
+});
 
 // 監聽網路恢復
 window.addEventListener('online', syncOfflineScores);
@@ -741,11 +805,17 @@ async function fetchLeaderboard() {
 
             const medal = index === 1 ? '🥇' : index === 2 ? '🥈' : index === 3 ? '🥉' : index;
 
-            row.innerHTML = `
-                <td class="py-3 px-2 font-bold ${index <= 3 ? 'text-yellow-600' : 'text-gray-500'}">${medal}</td>
-                <td class="py-3 px-2 font-medium text-gray-800">${data.nickname || '無名氏'}</td>
-                <td class="py-3 px-2 text-right font-bold text-blue-600">${data.score}</td>
-            `;
+            // 資料來自資料庫，一律用 textContent，避免暱稱夾帶 HTML
+            const rankCell = document.createElement('td');
+            rankCell.className = `py-3 px-2 font-bold ${index <= 3 ? 'text-yellow-600' : 'text-gray-500'}`;
+            rankCell.textContent = medal;
+            const nameCell = document.createElement('td');
+            nameCell.className = 'py-3 px-2 font-medium text-gray-800';
+            nameCell.textContent = data.nickname || '無名氏';
+            const scoreCell = document.createElement('td');
+            scoreCell.className = 'py-3 px-2 text-right font-bold text-blue-600';
+            scoreCell.textContent = data.score;
+            row.append(rankCell, nameCell, scoreCell);
             leaderboardBody.appendChild(row);
             index++;
         });
@@ -758,8 +828,11 @@ async function fetchLeaderboard() {
 // Global Event Listeners
 submitBtn.addEventListener("click", checkAnswer);
 
-answerInput.addEventListener("keypress", (e) => {
+answerInput.addEventListener("keydown", (e) => {
+    // 中文輸入法組字中（選字）的 Enter 不送出
+    if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter" && gameActive) {
+        e.preventDefault(); // 避免焦點轉到「下一題」後同一次按鍵又被它接走
         checkAnswer();
     }
 });
